@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0"
+    />
+    <meta http-equiv="X-UA-Compatible" content="ie=edge" />
+    <title>Document</title>
+  </head>
+  <body>
+    <input type="file" id="xlsx-file" accept=".xlsx,.xls" />
+    <button id="btn">Convert</button>
+    <textarea id="csv-output" rows="10" cols="50"></textarea>
+
+    <script src="https://unpkg.com/xlsx/dist/xlsx.full.min.js"></script>
+    <script>
+      btn.onclick = () => {
+        const fileInput = document.getElementById('xlsx-file')
+        const file = fileInput.files[0]
+
+        if (file) {
+          const reader = new FileReader()
+          reader.onload = function (e) {
+            const data = new Uint8Array(e.target.result)
+            const workbook = XLSX.read(data, { type: 'array', cellDates: true })
+
+            const worksheet = workbook.Sheets[workbook.SheetNames[0]]
+            const jsonData = XLSX.utils.sheet_to_json(worksheet)
+
+            const csvData = jsonData.map((data) => {
+              const atg_id = data['ATG id']
+              const external_id = data['Order Number']
+              const order_number = data['Order Number']
+              const date = data['Date'].toLocaleString()
+              const customer_name = data['Customer Name']
+              const email = data['Email']
+              return {
+                external_id,
+                order_number,
+                date,
+                atg_id,
+                customer_name,
+                email,
+                subscribed: 'yes',
+                tag_return_survey_status: 'READY',
+              }
+            })
+
+            const newWorksheet = XLSX.utils.json_to_sheet(csvData)
+
+            const csv = XLSX.utils.sheet_to_csv(newWorksheet)
+            document.getElementById('csv-output').value = csv
+
+            const blob = new Blob([csv], { type: 'text/csv' })
+            const url = URL.createObjectURL(blob)
+            const a = document.createElement('a')
+            a.href = url
+            a.download = `${file.name
+              .replace('.xls', '')
+              .replace('.xlsx', '')}.csv`
+            a.click()
+            URL.revokeObjectURL(url)
+          }
+          reader.readAsArrayBuffer(file)
+        } else {
+          alert('Please select a file!')
+        }
+      }
+    </script>
+  </body>
+</html>
